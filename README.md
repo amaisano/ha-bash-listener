@@ -2,7 +2,7 @@
 
 ## What?
 
-Bash script that listens to specified state changes from entities in your Home Assistant server. Uses curl as a lightweight way of getting initial states, and websockets to monitor push events. Allows you to execute any command line code when an entity state changes.
+Bash script that listens to specified state changes from entities in your Home Assistant server. Uses wget (curl is broken in Mac OS 13.3) as a lightweight way of getting initial states, and websockets to monitor push events. Allows you to execute any command line code when an entity state changes.
 
 ### Optional
 
@@ -22,9 +22,11 @@ Home Assistant has a companion app for Mac OS, yes, but it's responsible for pus
   - Custom template entity with attributes for each entity's state (for initial status)
 - `brew install websocat`
 - `brew install jq`
+- `brew install wget`
+- Optional: BetterTouchTool (currently the only controller/handler)
 
 ## ENVVARS
 
 - BEARER="the long lived auth token generated in your User settings in HA"
 - REST_API="full url to your server/api/states"
-- WSS_API="full url to your server/api/websocket"
+- WS_API="full url to your server/api/websocket"

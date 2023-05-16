@@ -7,8 +7,14 @@ ENTITY3="binary_sensor.work_headset"
 ENTITY4="person.adamo"
 ENTITY5="switch.work_vpn"
 
+# Setup relative path for secondary scripts
+parent_path=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  pwd -P
+)
+
 # Run initial state helper
-./status
+cd "$parent_path" && ./status
 
 # Setup websocket API state subscribers
 read -r -d '' ASK <<EOF

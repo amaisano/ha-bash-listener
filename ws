@@ -6,6 +6,7 @@ ENTITY2="input_boolean.work_auto_lock"
 ENTITY3="binary_sensor.work_headset"
 ENTITY4="person.adamo"
 ENTITY5="switch.work_vpn"
+ENTITY6="binary_sensor.work_skype_state"
 
 # Setup relative path for secondary scripts
 parent_path=$(
@@ -24,6 +25,7 @@ read -r -d '' ASK <<EOF
 {"id": 3, "type": "subscribe_trigger", "trigger": { "platform": "state", "entity_id": "${ENTITY3}" }}
 {"id": 4, "type": "subscribe_trigger", "trigger": { "platform": "state", "entity_id": "${ENTITY4}" }}
 {"id": 5, "type": "subscribe_trigger", "trigger": { "platform": "state", "entity_id": "${ENTITY5}" }}
+{"id": 6, "type": "subscribe_trigger", "trigger": { "platform": "state", "entity_id": "${ENTITY6}" }}
 EOF
 
 # Websocket response handler
@@ -47,6 +49,8 @@ websocketResponse() {
         INDEX=4
       elif [[ $entity_id == "${ENTITY5}" ]]; then
         INDEX=5
+      elif [[ $entity_id == "${ENTITY6}" ]]; then
+        INDEX=6
       fi
 
       # Perform actions with this new state:

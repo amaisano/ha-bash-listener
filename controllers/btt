@@ -4,4 +4,4 @@
 # For each state change, perform these actions
 # Type: Better Touch Tool + AppleScript
 
-osascript -e "tell application \"BetterTouchTool\" to set_string_variable \"customVariable${1}\" to \"${2}\"" >/dev/null
+osascript -e "tell application \"BetterTouchTool\" to set_persistent_string_variable \"customVariable${1}\" to \"${2}\"" >/dev/null

@@ -11,7 +11,7 @@ echo "$ENTITIES" | jq -c -r '.[]' | while read item; do
   entity=$(jq -r '.key' <<<"$item")
   state=$(jq -r '.value' <<<"$item")
 
-  if [[ $INDEX < 6 ]]; then
+  if [[ $INDEX < 7 ]]; then
     echo "$INDEX = $entity : $state"
     ./controllers/btt "$INDEX" "$state"
   fi

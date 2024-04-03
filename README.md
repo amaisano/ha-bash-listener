@@ -18,15 +18,41 @@ Home Assistant has a companion app for Mac OS, yes, but it's responsible for pus
 - Cloud-accessible Home Assistant instance (via Nabu Casa or DIY)
   - Websocket enabled setup (`websocket_api` is NOT required in config)
   - Long-lived token to use for authorization on client
-  - REST_API enabled on HA
-  - Custom template entity with attributes for each entity's state (for initial status)
+  - Custom template entity with attributes for each entity's state (for initial status)*
 - `brew install websocat`
 - `brew install jq`
 - `brew install wget`
 - Optional: BetterTouchTool (currently the only controller/handler)
 
+### Home Assistant Template Sensor Example:
+
+```yaml
+- platform: template
+  sensors:
+    btt_sensors:
+      friendly_name: "BTT Sensors"
+      value_template: |
+        {{ expand("input_boolean.me_meeting","input_boolean.work_auto_lock","binary_sensor.work_headset","person.me","switch.work_vpn","binary_sensor.work_skype_state")
+         | sort(attribute= 'last_changed', reverse=true)
+         | map(attribute ='last_updated')
+         | first | as_local
+        }}
+      attribute_templates:
+        input_boolean.me_meeting: |
+          {{ states("input_boolean.me_meeting") }}
+        input_boolean.work_auto_lock: |
+          {{ states("input_boolean.work_auto_lock") }}
+        binary_sensor.work_headset: |
+          {{ states("binary_sensor.work_headset") }}
+        person.me: |
+          {{ states("person.me") }}
+        switch.work_vpn: |
+          {{ states("switch.work_vpn") }}
+        binary_sensor.work_skype_state: |
+          {{ states("binary_sensor.work_skype_state") }}
+```
+
 ## ENVVARS
 
 - BEARER="the long lived auth token generated in your User settings in HA"
-- REST_API="full url to your server/api/states"
 - WS_API="full url to your server/api/websocket"

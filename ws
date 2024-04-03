@@ -11,6 +11,15 @@ ENTITY4="person.adamo"
 ENTITY5="switch.work_vpn"
 ENTITY6="binary_sensor.work_skype_state"
 
+# Setup relative path for secondary scripts
+parent_path=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  pwd -P
+)
+
+# Put script into project context:
+cd "$parent_path"
+
 # Setup websocket API state subscription
 read -r -d '' ASK <<EOF
 {"type": "auth", "access_token": "${BEARER}"}

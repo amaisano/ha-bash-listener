@@ -67,8 +67,6 @@ websocketResponse() {
 
           # Set full JSON array string as BTT variable value (all entities and their current states):
           ./controllers/btt $INDEX $SAFE
-        else
-          # No change
         fi
       fi
     fi

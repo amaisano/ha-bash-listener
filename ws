@@ -42,25 +42,33 @@ websocketResponse() {
         # Escape quotes for use as string variable, and shorten keys by removing domain:
         SAFE=$(echo "$RAW" | sed -r "s/\"[^\"]*\.([^\"]*)\"/\"\1\"/g" | sed -e 's/\"/\\\"/g')
 
+        # Set full JSON array string as BTT variable value (all entities and their current states):
+        ./controllers/btt $INDEX $SAFE
+
       # On each change following initial response:
       else
-        entity_id=$(echo "$json" | jq -r '.c?[][].a?|keys[]')
-        to_state=$(echo "$json" | jq -r '.c?[][].a?[]')
-
         # Get previous variable value from BTT directly
         # @todo: store this locally or in a BTT getter controller instead of requiring BTT at this level
         CURRENT=$(osascript -e "tell application \"BetterTouchTool\" to return get_string_variable \"customVariable$INDEX\"")
 
-        # Removes domain in entity_id to match originally set key values above:
-        entity_id_safe=$(echo $entity_id | sed -r "s/^.*\.//g")
-        new_state=$(echo "$CURRENT" | jq -rc ".$entity_id_safe = \"$to_state\"")
+        check=$(echo "$json" | jq -r '.c?[][].a?')
 
-        # Escape quotes for use as string variable:
-        SAFE=$(echo "$new_state" | sed -e 's/\"/\\\"/g')
+        if [[ $check != "null" ]]; then
+          # Continue
+          entity_id=$(echo "$json" | jq -r '.c?[][].a?|keys[]')
+          to_state=$(echo "$json" | jq -r '.c?[][].a?[]')
+
+          # Removes domain in entity_id to match originally set key values above:
+          entity_id_safe=$(echo $entity_id | sed -r "s/^.*\.//g")
+          new_state=$(echo "$CURRENT" | jq -rc ".$entity_id_safe = \"$to_state\"")
+
+          # Escape quotes for use as string variable:
+          SAFE=$(echo "$new_state" | sed -e 's/\"/\\\"/g')
+
+          # Set full JSON array string as BTT variable value (all entities and their current states):
+          ./controllers/btt $INDEX $SAFE
+        fi
       fi
-
-      # Set full JSON array string as BTT variable value (all entities and their current states):
-      ./controllers/btt $INDEX $SAFE
     fi
   done
 }

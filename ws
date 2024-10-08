@@ -1,15 +1,8 @@
 #!/bin/bash
 
-# Master sensor with attributes (see README)
-ENTITY0="sensor.btt_sensors"
-
-# Home assistant entity IDs to monitor
-ENTITY1="input_boolean.adamo_meeting"
-ENTITY2="input_boolean.work_auto_lock"
-ENTITY3="binary_sensor.work_headset"
-ENTITY4="person.adamo"
-ENTITY5="switch.work_vpn"
-ENTITY6="binary_sensor.work_skype_state"
+# Init
+INDEX=1 # Which BTT variable to store data on / HA WSS ID
+ENTITY="sensor.btt_sensors" # Master template sensor (see README)
 
 # Setup relative path for secondary scripts
 parent_path=$(
@@ -23,57 +16,51 @@ cd "$parent_path"
 # Setup websocket API state subscription
 read -r -d '' ASK <<EOF
 {"type": "auth", "access_token": "${BEARER}"}
-{"id": 1, "type": "subscribe_entities", "entity_ids": ["${ENTITY0}"]}
+{"id": ${INDEX}, "type": "subscribe_entities", "entity_ids": ["${ENTITY}"]}
 EOF
 
 # Websocket response handler
 websocketResponse() {
   local line
   while IFS= read -r line; do
-    json=$(echo "$line" | jq '.event?')
-    if [[ $json != "null" ]]; then
+    # Terminal output (verbose):
+    echo "$line" | jq -r
 
-      INDEX=1
+    json=$(echo "$line" | jq '.event?')
+
+    if [[ $json != "null" ]]; then
       # .c will be present for entity attribute updates only,
       # not for initial main sensor status report
       change=$(echo "$json" | jq -r '.c?')
 
-      if [[ $change != "null" ]]; then
+      SAFE=''
+
+      # On initial response:
+      if [[ $change == "null" ]]; then
+        RAW=$(echo "$json" | jq '.a?[].a?' | jq -rc 'del(.friendly_name)')
+
+        # Escape quotes for use as string variable, and shorten keys by removing domain:
+        SAFE=$(echo "$RAW" | sed -r "s/\"[^\"]*\.([^\"]*)\"/\"\1\"/g" | sed -e 's/\"/\\\"/g')
+
+      # On each change following initial response:
+      else
         entity_id=$(echo "$json" | jq -r '.c?[][].a?|keys[]')
         to_state=$(echo "$json" | jq -r '.c?[][].a?[]')
 
-        if [[ $entity_id == "${ENTITY2}" ]]; then
-          INDEX=2
-        elif [[ $entity_id == "${ENTITY3}" ]]; then
-          INDEX=3
-        elif [[ $entity_id == "${ENTITY4}" ]]; then
-          INDEX=4
-        elif [[ $entity_id == "${ENTITY5}" ]]; then
-          INDEX=5
-        elif [[ $entity_id == "${ENTITY6}" ]]; then
-          INDEX=6
-        fi
+        # Get previous variable value from BTT directly
+        # @todo: store this locally or in a BTT getter controller instead of requiring BTT at this level
+        CURRENT=$(osascript -e "tell application \"BetterTouchTool\" to return get_string_variable \"customVariable$INDEX\"")
 
-        echo "$INDEX = $entity_id : $to_state"
+        # Removes domain in entity_id to match originally set key values above:
+        entity_id_safe=$(echo $entity_id | sed -r "s/^.*\.//g")
+        new_state=$(echo "$CURRENT" | jq -rc ".$entity_id_safe = \"$to_state\"")
 
-        # Perform actions with this new state:
-        ./controllers/btt "$INDEX" "$to_state"
-      else
-        ENTITIES=$(echo "$json" | jq -r '.a?[].a?' | jq 'to_entries')
-
-        # Set current states at startup using combo sensor attributes
-        echo "$ENTITIES" | jq -c -r '.[]' | while read item; do
-          entity=$(jq -r '.key' <<<"$item")
-          state=$(jq -r '.value' <<<"$item")
-
-          if [[ $INDEX < 7 ]]; then
-            echo "$INDEX = $entity : $state"
-            ./controllers/btt "$INDEX" "$state"
-          fi
-
-          ((INDEX++))
-        done
+        # Escape quotes for use as string variable:
+        SAFE=$(echo "$new_state" | sed -e 's/\"/\\\"/g')
       fi
+
+      # Set full JSON array string as BTT variable value (all entities and their current states):
+      ./controllers/btt $INDEX $SAFE
     fi
   done
 }

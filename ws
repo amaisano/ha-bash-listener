@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Load credentials from the shared shell environment file, if present.
+# Sourcing explicitly (rather than relying on inherited exports) means this
+# works when launched by launchd/cron or a bash login shell, neither of which
+# reads ~/.zshenv. The file is POSIX syntax, so bash and sh both handle it.
+[ -r "$HOME/.config/shell/env" ] && . "$HOME/.config/shell/env"
+
+# Fail loudly rather than sending an empty token and getting a confusing
+# auth rejection from Home Assistant.
+: "${BEARER:?not set - export it, or define it in ~/.config/shell/env}"
+: "${WSS_API:?not set - export it, or define it in ~/.config/shell/env}"
+
 # Init
 INDEX=1 # Which BTT variable to store data on / HA WSS ID
 ENTITY="sensor.btt_sensors" # Master template sensor (see README)

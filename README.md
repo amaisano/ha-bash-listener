@@ -54,5 +54,30 @@ Home Assistant has a companion app for Mac OS, yes, but it's responsible for pus
 
 ## ENVVARS
 
-- BEARER="the long lived auth token generated in your User settings in HA"
-- WS_API="full url to your server/api/websocket"
+- `BEARER` — the long-lived auth token generated in your User settings in HA
+- `WSS_API` — full websocket URL, e.g. `wss://your-server/api/websocket`
+
+Note the name is `WSS_API`, not `WS_API`. Earlier revisions of this README had the
+latter, which does not match what `ws` reads and results in `websocat` being handed
+an empty URL.
+
+### Supplying them
+
+`ws` sources `~/.config/shell/env` on startup if that file exists, so the variables can
+live there instead of being exported by hand:
+
+```sh
+# ~/.config/shell/env   (chmod 600)
+export HA_TOKEN='<long-lived token>'
+export HA_BASE_URL='https://your-server'
+
+export BEARER="$HA_TOKEN"
+export WSS_API="wss://${HA_BASE_URL#https://}/api/websocket"
+```
+
+Keep that file to plain `export NAME=value` lines — it is also read by non-bash
+consumers (`/bin/sh`), so shell-specific syntax will break them.
+
+Exporting `BEARER` and `WSS_API` by any other means still works; the file is optional.
+If neither is set, `ws` now exits immediately with a message instead of failing at the
+auth step.

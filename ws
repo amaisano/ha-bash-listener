@@ -84,5 +84,19 @@ websocketResponse() {
   done
 }
 
-# Use -n option to keep connection open for push event data:
-echo "$ASK" | websocat -n $WSS_API | websocketResponse
+# -n keeps the connection open for push event data.
+#
+# --ping-interval / --ping-timeout exist to catch the failure mode that is
+# otherwise invisible: a wifi change, sleep/wake, or NAT timeout kills the TCP
+# connection without a FIN, so websocat blocks forever on a dead socket. The
+# process stays alive and simply stops receiving events. Pinging forces the
+# connection to prove itself, and websocat exits when no Pong arrives — which
+# turns a silent stall into a normal process exit that a supervisor (or the BTT
+# activation-group alert) can actually see.
+#
+# Note the auth + subscribe payload arrives on stdin and is consumed once, so
+# websocat's `autoreconnect:` overlay is NOT a substitute: a re-established
+# socket would never re-authenticate. The process is the unit of recovery, not
+# the socket — a fresh run re-auths, re-subscribes, and rebuilds the BTT
+# variable from the template sensor's initial response.
+echo "$ASK" | websocat -n --ping-interval 30 --ping-timeout 90 "$WSS_API" | websocketResponse

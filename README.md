@@ -81,3 +81,32 @@ consumers (`/bin/sh`), so shell-specific syntax will break them.
 Exporting `BEARER` and `WSS_API` by any other means still works; the file is optional.
 If neither is set, `ws` now exits immediately with a message instead of failing at the
 auth step.
+
+### DEBUG
+
+`DEBUG=1 ./ws` prints every message HA pushes, via `jq`. Useful when adding or renaming
+attributes on the template sensor and you need to see exactly what is arriving. Off by
+default, since the output is unbounded and would fill a log file when run under a
+supervisor.
+
+### Running it unattended
+
+`ws` exits on every failure it can detect — a clean close when HA restarts, and a
+`--ping-timeout` drop when the socket dies without a FIN (wifi change, dock disconnect,
+sleep/wake). That makes it safe to hand to a supervisor: restarting the process is full
+recovery, because a fresh run re-authenticates, re-subscribes, and rebuilds the BTT
+variable from the template sensor's initial response.
+
+A macOS LaunchAgent with `RunAtLoad` + `KeepAlive` + `ThrottleInterval 30` is enough.
+Two things to get right:
+
+- **PATH.** launchd hands a job `/bin:/usr/bin:/usr/local/bin:/usr/sbin:/sbin`, which does
+  not include Homebrew. `ws` prepends `/opt/homebrew/bin` itself, so no plist
+  `EnvironmentVariables` are needed. Without it the script dies with
+  `websocat: command not found` while `launchctl` still reports `state = running`.
+- **Only one subscriber.** Running under launchd *and* in a terminal at the same time
+  means two connections fighting over the same BTT variable.
+
+Point `StandardOutPath` / `StandardErrorPath` at a log file — worth doing, since a
+terminal tab launched with a trailing `;exit` closes the instant `ws` dies and takes the
+error output with it.

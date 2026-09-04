@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Homebrew's bin is not on the PATH that launchd (or BTT, or cron) hands a job:
+# they use /bin:/usr/bin:/usr/local/bin:/usr/sbin:/sbin. websocat lives only in
+# /opt/homebrew/bin, so without this the script dies with
+# "websocat: command not found" while launchctl still reports state = running.
+# Prepending also keeps launchd runs on the same jq as an interactive run --
+# macOS ships its own /usr/bin/jq, which would otherwise silently take over.
+[ -d /opt/homebrew/bin ] && PATH="/opt/homebrew/bin:$PATH"
+export PATH
+
 # Load credentials from the shared shell environment file, if present.
 # Sourcing explicitly (rather than relying on inherited exports) means this
 # works when launched by launchd/cron or a bash login shell, neither of which
@@ -34,8 +43,14 @@ EOF
 websocketResponse() {
   local line
   while IFS= read -r line; do
-    # Terminal output (verbose):
-    echo "$line" | jq -r
+    # Verbose per-message output, gated behind DEBUG. Useful when adding or
+    # renaming attributes on the template sensor and you need to see exactly
+    # what HA is pushing. Off by default: under launchd this goes to a log file
+    # and would otherwise grow without bound.
+    #   DEBUG=1 ./ws
+    if [ -n "$DEBUG" ]; then
+      echo "$line" | jq -r
+    fi
 
     json=$(echo "$line" | jq '.event?')
 
